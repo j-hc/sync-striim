@@ -27,6 +27,7 @@ xhr.open('GET', '/new_listener', true);
 xhr.onload = function () {
     updateLogin();
     connectWS();
+    renderRoom();
 };
 xhr.send();
 
