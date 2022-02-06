@@ -47,7 +47,9 @@ function renderRoom() {
         document.getElementById("listeners").innerHTML = r.listeners.listeners.map((l) => l.listener_id).join(", ")
         document.getElementById("modlistener").innerHTML = r.mod_id.toString();
         document.getElementById("cur_roomid").innerHTML = r.room_id;
-        is_mod = r.mod_id == JSON.parse(login_frame).listener_id;
+        let parsed_login_frame = JSON.parse(login_frame);
+        document.getElementById("listenerid").innerHTML = parsed_login_frame.listener_id;
+        is_mod = r.mod_id == parsed_login_frame.listener_id;
     };
     xhr.send();
 }
