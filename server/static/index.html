@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+</head>
+
+<body>
+    <h3>i dont what css is</h3>
+    <h3>sync-striim</h3>
+    <label>Room ID: </label> <label id="cur_roomid"></label> <br>
+    <label>Playing URL: </label> <label id="playing"></label> <br>
+    <label>Listener IDs: </label> <label id="listeners"></label> <br>
+    <label>Mod Listener ID: </label> <label id="modlistener"></label> <br>
+
+    <br>
+    <hr>
+    <input id="roomid" style="margin-top: 10px; display:block; width:120px; box-sizing: border-box" type="text"
+        placeholder="room id">
+    <button id="join-room-btn" style="margin-top: 3px;" type="button">Join</button>
+    <br><label id="joinerror" style="visibility: hidden;"></label><br>
+
+    <input id="yt-search" style="margin-top: 20px;display:block; width:200px; box-sizing: border-box" type="text"
+        placeholder="youtube search">
+    <button id="yt-search-btn" style="margin-top: 3px;" type="button">Set playing</button>
+
+    <hr>
+    <script src='index.js'></script>
+    <audio id="mainPlayer" type="audio/mp3" controls="controls" onloadeddata="onPlayerLoad()">
+        <source src="1.mp3" />
+        <!-- that source is for testing -->
+    </audio>
+</body>
+
+<script>renderRoom()</script>
+
+</html>

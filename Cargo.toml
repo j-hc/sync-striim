@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "yt-rs",
+    "server",
+    # "client"
+]
