@@ -2,12 +2,17 @@ mod listener;
 mod room;
 mod ws;
 
+use std::ops::Bound;
+
+use crate::common::cookie_store::CookieStore;
 use crate::common::state::{SharedState, State};
 use crate::error::AppErr;
-use axum::extract::TypedHeader;
-use axum::response::Redirect;
+use axum::extract::{Extension, TypedHeader};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Redirect};
 use axum::routing::{get, get_service, post};
 use axum::{AddExtensionLayer, Router};
+use headers::{HeaderMap, HeaderMapExt};
 use tower::ServiceBuilder;
 use tower_cookies::CookieManagerLayer;
 use tower_http::{services::ServeDir, trace::TraceLayer};
@@ -19,7 +24,7 @@ pub fn get_router() -> Router {
         .nest(
             "/room",
             Router::new()
-                .route("/stream", get(room::get_stream))
+                .route("/stream", get(get_stream))
                 .route("/playing", post(room::set_room_song))
                 .route("/", get(room::get_current_room)),
         )
@@ -35,9 +40,9 @@ pub fn get_router() -> Router {
                     {
                         // yes this is how i determine if it is a browser
                         if user_agent.as_str().contains("Mozilla") {
-                            Redirect::permanent("/static".parse().unwrap())
+                            Redirect::permanent("/static".parse().unwrap()).into_response()
                         } else {
-                            Redirect::permanent("/".parse().unwrap())
+                            ().into_response()
                         }
                     }
                 },
@@ -54,41 +59,39 @@ pub fn get_router() -> Router {
         .layer(TraceLayer::new_for_http())
 }
 
-// async fn stream_song(
-//     Extension(shared_state): Extension<SharedState>,
-//     cookies: CookieStore,
-//     TypedHeader(b_range): TypedHeader<headers::Range>,
-// ) -> Result<impl IntoResponse, AppErr> {
-//     let mut state = shared_state.lock().unwrap();
-//     let room = state
-//         .rooms
-//         .get_room_by_id_mut(cookies.room_id.unwrap())
-//         .unwrap();
+async fn get_stream(
+    Extension(shared_state): Extension<SharedState>,
+    cookies: CookieStore,
+    TypedHeader(b_range): TypedHeader<headers::Range>,
+) -> Result<impl IntoResponse, AppErr> {
+    let mut state = shared_state.rooms.lock().await;
+    let room = state.get_room_by_id_mut(cookies.room_id)?;
+    let sh = room
+        .playing
+        .stream_helper
+        .as_mut()
+        .ok_or(AppErr::NothingIsPlaying)?;
 
-//     let buf_full = room.playing.as_ref().unwrap().bytes.as_slice();
-//     let full_len = buf_full.len() as u64;
+    let bounded_range = b_range.iter().next().unwrap();
+    let s = match bounded_range.0 {
+        Bound::Included(b) => b,
+        Bound::Excluded(b) => b + 1,
+        Bound::Unbounded => 0,
+    };
 
-//     let bounded_range = b_range.iter().next().unwrap();
-//     let s = match bounded_range.0 {
-//         Bound::Included(b) => b,
-//         Bound::Excluded(b) => (b + 1),
-//         Bound::Unbounded => 0,
-//     };
+    let e = match bounded_range.1 {
+        Bound::Included(b) => b,
+        Bound::Excluded(b) => b + 1,
+        Bound::Unbounded => sh.content_length,
+    };
 
-//     let mut e = match bounded_range.1 {
-//         Bound::Included(b) => b,
-//         Bound::Excluded(b) => (b + 1),
-//         Bound::Unbounded => full_len,
-//     };
+    let chunk = sh.striim(s as usize..e as usize).await?.to_vec();
 
-//     if e > full_len {
-//         e = full_len;
-//     }
+    let mut h = HeaderMap::new();
+    h.typed_insert(
+        headers::ContentRange::bytes(s..=s + chunk.len() as u64, Some(sh.content_length)).unwrap(),
+    );
+    h.typed_insert(headers::AcceptRanges::bytes());
 
-//     let buf = buf_full[s as usize..e as usize].to_vec();
-
-//     let mut h = HeaderMap::new();
-//     h.typed_insert(headers::ContentRange::bytes(s..e, Some(full_len)).unwrap());
-//     h.typed_insert(headers::AcceptRanges::bytes());
-//     Ok((StatusCode::PARTIAL_CONTENT, h, buf))
-// }
+    Ok((StatusCode::PARTIAL_CONTENT, h, chunk))
+}

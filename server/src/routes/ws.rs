@@ -29,13 +29,10 @@ async fn handle_ws(ws: WebSocket, shared_state: SharedState) -> Result<(), AppEr
             break serde_json::from_str(&msg).map_err(WSErr::SerializingErr)?;
         }
     };
-    println!("session from client ws: {:?}", session);
 
     let is_mod = {
         let mut rooms = shared_state.rooms.lock().await;
-        let room = rooms
-            .get_room_by_id_mut(session.room_id)
-            .ok_or(WSErr::WSSessionErr)?;
+        let room = rooms.get_room_by_id_mut(session.room_id)?;
         room.is_listener_mod(session.listener_id)
     };
 
@@ -43,12 +40,9 @@ async fn handle_ws(ws: WebSocket, shared_state: SharedState) -> Result<(), AppEr
         while let Some(Ok(Message::Text(msg))) = ws_recv.next().await {
             if let Ok(sync_msg) = serde_json::from_str::<RoomSync>(&msg) {
                 let mut rooms = shared_state.rooms.lock().await;
-                let room = rooms
-                    .get_room_by_id_mut(session.room_id)
-                    .ok_or(WSErr::WSSessionErr)?;
-                if let Some(p) = &mut room.playing {
-                    p.sync(&sync_msg);
-                }
+                let room = rooms.get_room_by_id_mut(session.room_id)?;
+                room.playing.sync(&sync_msg);
+
                 // if err, no receiver exists or all of them are dropped
                 room.tx.send(sync_msg).ok();
             }
@@ -56,9 +50,7 @@ async fn handle_ws(ws: WebSocket, shared_state: SharedState) -> Result<(), AppEr
     } else {
         let mut rx = {
             let mut rooms = shared_state.rooms.lock().await;
-            let room = rooms
-                .get_room_by_id_mut(session.room_id)
-                .ok_or(WSErr::WSSessionErr)?;
+            let room = rooms.get_room_by_id_mut(session.room_id)?;
             room.tx.subscribe()
         };
         while let Ok(msg) = rx.recv().await {
@@ -66,8 +58,7 @@ async fn handle_ws(ws: WebSocket, shared_state: SharedState) -> Result<(), AppEr
             if ws_send.send(Message::Text(sync_msg)).await.is_err() {
                 let mut rooms = shared_state.rooms.lock().await;
                 let _ = rooms
-                    .get_room_by_id_mut(session.room_id)
-                    .ok_or(WSErr::WSSessionErr)?
+                    .get_room_by_id_mut(session.room_id)?
                     .listeners
                     .take_listener_by_id(session.listener_id);
                 break;

@@ -125,8 +125,6 @@ pub async fn get_stream(
 
 #[cfg(test)]
 mod tests {
-    use reqwest::ResponseBuilderExt;
-
     use crate::*;
 
     #[tokio::test]
@@ -139,7 +137,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_stream() {
-        let s = get_stream("jKhP750VdXw", "en-GB", "US").await;
+        let s = get_stream("hHB1Ikzfpmc", "en-GB", "US").await;
         assert!(s.is_ok());
         let v = s.unwrap();
         assert!(!v.is_empty());
@@ -147,7 +145,7 @@ mod tests {
             if Some(String::from("AUDIO_QUALITY_MEDIUM")) == f.audio_quality
                 && f.mime_type.contains("audio/mp4")
             {
-                println!("{}", f.url)
+                println!("{}\n{}", f.url, f.content_length)
             }
         }
     }

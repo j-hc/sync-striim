@@ -1,39 +1,10 @@
+use crate::error::AppErr;
+
 use super::listener::{ListenerID, Listeners};
+use super::playing::Playing;
 use serde::{Deserialize, Serialize};
 
 pub type RoomID = usize;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Playing {
-    pub stream_url: String,
-    pub pos: f32,
-    pub is_playing: bool,
-}
-impl Playing {
-    pub async fn new(video_id: &str) -> Result<Self, ()> {
-        let aformats = yt_rs::get_stream(video_id, "en-GB", "US").await.unwrap();
-        for f in aformats {
-            if Some(String::from("AUDIO_QUALITY_MEDIUM")) == f.audio_quality
-                && f.mime_type.contains("audio/mp4")
-            {
-                return Ok(Self {
-                    stream_url: f.url,
-                    pos: 0f32,
-                    is_playing: false,
-                });
-            }
-        }
-        Err(())
-    }
-
-    pub fn sync(&mut self, msg: &RoomSync) {
-        self.pos = msg.pos;
-        match msg.kind {
-            RoomSyncKind::Pause => self.is_playing = false,
-            RoomSyncKind::Resume => self.is_playing = true,
-        }
-    }
-}
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub enum RoomSyncKind {
@@ -49,7 +20,7 @@ pub struct RoomSync {
 
 #[derive(Serialize, Debug)]
 pub struct Room {
-    pub playing: Option<Playing>,
+    pub playing: Playing,
     pub room_id: RoomID,
     pub listeners: Listeners,
     pub mod_id: ListenerID,
@@ -74,7 +45,7 @@ impl Rooms {
         let (tx, _) = tokio::sync::broadcast::channel(100);
         self.rooms.push(Room {
             mod_id,
-            playing: None,
+            playing: Default::default(),
             room_id: l,
             listeners: Listeners::default(),
             tx,
@@ -83,8 +54,11 @@ impl Rooms {
         self.rooms.get_mut(l).unwrap()
     }
 
-    pub fn get_room_by_id_mut(&mut self, room_id: RoomID) -> Option<&mut Room> {
-        self.rooms.iter_mut().find(|r| r.room_id == room_id)
+    pub fn get_room_by_id_mut(&mut self, room_id: RoomID) -> Result<&mut Room, AppErr> {
+        self.rooms
+            .iter_mut()
+            .find(|r| r.room_id == room_id)
+            .ok_or(AppErr::InvalidRoom)
     }
 
     pub fn get_room_by_id(&self, room_id: RoomID) -> Option<&Room> {

@@ -6,6 +6,7 @@ use serde_json::json;
 
 use crate::common::cookie_store::CookieStore;
 
+#[derive(Debug)]
 pub enum AppErr {
     InvalidRoom,
     ListenerNotFound,
@@ -14,6 +15,7 @@ pub enum AppErr {
     BadStreamingRequest,
     ImpossibleError,
     NothingIsPlaying,
+    RequesterError(reqwest::Error),
     SessionErr(CookieStoreErr),
     WebSocketErr(WSErr),
     InternalError(std::io::Error),
@@ -56,6 +58,10 @@ impl IntoResponse for AppErr {
             Self::NothingIsPlaying => (
                 StatusCode::OK,
                 Json(json!({ "error": "nothing is currently playing" })),
+            ),
+            Self::RequesterError(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
             ),
             Self::WebSocketErr(e) => (StatusCode::OK, Json(json!({ "error": e.to_string() }))),
         }

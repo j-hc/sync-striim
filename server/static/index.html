@@ -7,11 +7,12 @@
     <title>sync-striim</title>
 </head>
 
+
 <body>
     <h3>i dont what css is</h3>
     <h3>sync-striim</h3>
     <label>Room ID: </label> <label id="cur_roomid"></label> <br>
-    <label>Playing URL: </label> <label id="playing"></label> <br>
+    <label>Playing: </label> <label id="playing"></label> <br>
     <label>Your Listener ID: </label> <label id="listenerid"></label> <br>
     <label>Listener IDs in the Room: </label> <label id="listeners"></label> <br>
     <label>Room Mod's Listener ID: </label> <label id="modlistener"></label> <br>
@@ -25,14 +26,14 @@
 
     <input id="yt-search" style="margin-top: 20px;display:block; width:200px; box-sizing: border-box" type="text"
         placeholder="youtube search">
-    <button id="yt-search-btn" style="margin-top: 3px;" type="button">Set playing</button>
+    <button id="yt-search-btn" style="margin-top: 3px;" type="button">Search and play</button>
+    <br><label id="setplayingerror" style="visibility: hidden;"></label><br>
 
     <hr>
-    <script src='index.js'></script>
-    <audio id="mainPlayer" type="audio/mp3" controls="controls" onloadeddata="onPlayerLoad()">
-        <source src="1.mp3" />
-        <!-- that source is for testing -->
+    <audio id="mainPlayer" type="audio/mp4" controls="controls">
+        <source src="" />
     </audio>
+    <script src='index.js'></script>
 </body>
 
 

@@ -1,5 +1,4 @@
 use crate::common::cookie_store::CookieStore;
-use crate::common::room::Playing;
 use crate::common::state::SharedState;
 use crate::error::AppErr;
 use axum::extract::{Extension, Path};
@@ -11,37 +10,26 @@ use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct SetRoomPlayingReq {
-    video_id: String,
+    query: String,
 }
 pub async fn set_room_song(
     Json(set_room_song_req): Json<SetRoomPlayingReq>,
     cookies: CookieStore,
     Extension(shared_state): Extension<SharedState>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, AppErr> {
     let mut rooms = shared_state.rooms.lock().await;
-    let room = rooms.get_room_by_id_mut(cookies.room_id).unwrap();
+    let room = rooms.get_room_by_id_mut(cookies.room_id)?;
     if room.is_listener_mod(cookies.listener_id) {
-        room.playing = Some(Playing::new(&set_room_song_req.video_id).await.unwrap());
-        StatusCode::ACCEPTED
+        let results = yt_rs::search(&set_room_song_req.query, "en-GB", "US")
+            .await
+            .map_err(AppErr::RequesterError)?;
+        room.playing
+            .set_stream(results[0].video_id(), set_room_song_req.query)
+            .await?;
+        Ok(StatusCode::OK)
     } else {
-        StatusCode::FORBIDDEN
+        Ok(StatusCode::FORBIDDEN)
     }
-}
-
-pub async fn get_stream(
-    cookie_store: CookieStore,
-    Extension(shared_state): Extension<SharedState>,
-) -> Result<String, AppErr> {
-    let rooms = shared_state.rooms.lock().await;
-    let room = rooms
-        .get_room_by_id(cookie_store.room_id)
-        .ok_or(AppErr::InvalidRoom)?;
-    Ok(room
-        .playing
-        .as_ref()
-        .ok_or(AppErr::NothingIsPlaying)?
-        .stream_url
-        .clone())
 }
 
 pub async fn get_current_room(
@@ -61,7 +49,7 @@ pub async fn connect_to_room(
     mut cookie_store: CookieStore,
     Extension(shared_state): Extension<SharedState>,
 ) -> Result<impl IntoResponse, AppErr> {
-    let new_room_id: usize = new_room_id.parse().unwrap();
+    let new_room_id: usize = new_room_id.parse().map_err(|_| AppErr::InvalidRoom)?;
     let old_room_id = cookie_store.room_id;
     if new_room_id == old_room_id {
         return Err(AppErr::AlreadyInRoom);
@@ -72,9 +60,7 @@ pub async fn connect_to_room(
         return Err(AppErr::InvalidRoom);
     }
 
-    let cur_room = rooms
-        .get_room_by_id_mut(old_room_id)
-        .ok_or(AppErr::InvalidRoom)?;
+    let cur_room = rooms.get_room_by_id_mut(old_room_id)?;
 
     let listener = cur_room
         .listeners
