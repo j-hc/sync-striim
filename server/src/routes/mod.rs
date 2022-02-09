@@ -89,7 +89,7 @@ async fn get_stream(
 
     let mut h = HeaderMap::new();
     h.typed_insert(
-        headers::ContentRange::bytes(s..=s + chunk.len() as u64, Some(sh.content_length)).unwrap(),
+        headers::ContentRange::bytes(s..s + chunk.len() as u64, Some(sh.content_length)).unwrap(),
     );
     h.typed_insert(headers::AcceptRanges::bytes());
 
