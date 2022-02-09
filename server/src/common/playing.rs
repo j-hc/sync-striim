@@ -15,7 +15,7 @@ pub struct StreamHelper {
 }
 
 impl StreamHelper {
-    const MAX_BUFFER: u64 = 1024 * 1024;
+    const MAX_BUFFER: u64 = 15 * 100 * 1024;
 
     pub fn new(content_length: u64, url: String) -> Self {
         Self {
