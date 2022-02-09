@@ -48,7 +48,7 @@ function updateLogin() {
 }
 
 function renderRoom(room) {
-    document.getElementById("playing").innerHTML = room.playing.last_room_query;
+    document.getElementById("playing").innerHTML = room.playing.title;
     document.getElementById("listeners").innerHTML = room.listeners.listeners.map((l) => l.listener_id).join(", ")
     document.getElementById("modlistener").innerHTML = room.mod_id.toString();
     document.getElementById("cur_roomid").innerHTML = room.room_id;

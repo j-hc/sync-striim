@@ -50,7 +50,7 @@ impl StreamHelper {
 
 #[derive(Serialize, Debug, Default)]
 pub struct Playing {
-    pub last_room_query: String,
+    pub title: String,
     pub pos: f32,
     pub is_playing: bool,
     pub is_loaded: bool,
@@ -59,13 +59,13 @@ pub struct Playing {
     pub stream_helper: Option<StreamHelper>,
 }
 impl Playing {
-    pub async fn set_stream(&mut self, video_id: &str, video_query: String) -> Result<(), AppErr> {
+    pub async fn set_stream(&mut self, video_id: &str, title: String) -> Result<(), AppErr> {
         let aformats = yt_rs::get_stream(video_id, "en-GB", "US").await?;
         for f in aformats {
             if Some(String::from("AUDIO_QUALITY_MEDIUM")) == f.audio_quality
                 && f.mime_type.contains("audio/mp4")
             {
-                self.last_room_query = video_query;
+                self.title = title;
                 self.is_loaded = true;
                 self.pos = 0f32;
                 let content_length = f.content_length.parse().unwrap(); // nevermind
