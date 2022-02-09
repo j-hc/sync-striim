@@ -16,12 +16,18 @@ pub struct VideoRS {
     inner: search_models::Content2,
 }
 impl VideoRS {
-    pub fn video_id(&self) -> &str {
-        &self.inner.video_renderer.as_ref().unwrap().video_id
+    pub fn video_id(&self) -> Option<&str> {
+        match self.inner.video_renderer.as_ref() {
+            Some(t) => Some(&t.video_id),
+            None => None,
+        }
     }
 
-    pub fn title(&self) -> &str {
-        &self.inner.video_renderer.as_ref().unwrap().title.runs[0].text
+    pub fn title(&self) -> Option<&str> {
+        match self.inner.video_renderer.as_ref() {
+            Some(t) => Some(&t.title.runs[0].text),
+            None => None,
+        }
     }
 }
 

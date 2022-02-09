@@ -15,6 +15,7 @@ pub enum AppErr {
     BadStreamingRequest,
     ImpossibleError,
     NothingIsPlaying,
+    SNotFound,
     RequesterError(reqwest::Error),
     SessionErr(CookieStoreErr),
     WebSocketErr(WSErr),
@@ -63,9 +64,20 @@ impl IntoResponse for AppErr {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": e.to_string() })),
             ),
+            Self::SNotFound => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "not found" })),
+            ),
             Self::WebSocketErr(e) => (StatusCode::OK, Json(json!({ "error": e.to_string() }))),
         }
         .into_response()
+    }
+}
+
+
+impl From<reqwest::Error> for AppErr {
+    fn from(e: reqwest::Error) -> Self {
+        Self::RequesterError(e)
     }
 }
 

@@ -38,11 +38,10 @@ impl StreamHelper {
                 .get(&self.url)
                 .header("Range", format!("bytes={}-{}", owned_len, end))
                 .send()
-                .await
-                .map_err(AppErr::RequesterError)?;
+                .await?;
             r.headers();
             let w = tokio::io::copy(
-                &mut Cursor::new(r.bytes().await.map_err(AppErr::RequesterError)?),
+                &mut Cursor::new(r.bytes().await?),
                 &mut self.stream_bytes,
             )
             .await
@@ -65,8 +64,7 @@ pub struct Playing {
 impl Playing {
     pub async fn set_stream(&mut self, video_id: &str, video_query: String) -> Result<(), AppErr> {
         let aformats = yt_rs::get_stream(video_id, "en-GB", "US")
-            .await
-            .map_err(AppErr::RequesterError)?;
+            .await?;
         for f in aformats {
             if Some(String::from("AUDIO_QUALITY_MEDIUM")) == f.audio_quality
                 && f.mime_type.contains("audio/mp4")

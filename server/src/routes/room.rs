@@ -21,10 +21,9 @@ pub async fn set_room_song(
     let room = rooms.get_room_by_id_mut(cookies.room_id)?;
     if room.is_listener_mod(cookies.listener_id) {
         let results = yt_rs::search(&set_room_song_req.query, "en-GB", "US")
-            .await
-            .map_err(AppErr::RequesterError)?;
+            .await?;
         room.playing
-            .set_stream(results[0].video_id(), set_room_song_req.query)
+            .set_stream(results[0].video_id().ok_or(AppErr::SNotFound)?, set_room_song_req.query)
             .await?;
         Ok(StatusCode::OK)
     } else {
